@@ -3,41 +3,39 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"net/http"
-	"strings"
+)
+
+const (
+	message            = "Hmmm, a King Gizzard song was played. Maybe we should VoNC Towells. :vonc: :towells:"
+	slackHook          = ""
+	nowPlayingEndpoint = ""
 )
 
 type slackMessage struct {
 	Text string `json:"text"`
 }
 
-type icecast struct {
-	Icestats struct {
-		Source []struct {
-			Listenurl string `json:"listenurl"`
-			Title     string `json:"title,omitempty"`
-		} `json:"source"`
-	} `json:"icestats"`
-}
-
-func VoncAlex() {
-	var toSend slackMessage = slackMessage{Text: "Hmmm, a King Gizzard song was played. Maybe we should VoNC Towells. :vonc: :towells:"}
-	bytesRepresentation, err := json.Marshal(toSend)
-	if err != nil {
-		panic(err)
-	}
-	_, err = http.Post("*****SLACK HOOK*****", "application/json", bytes.NewBuffer(bytesRepresentation))
-	if err != nil {
-		panic(err)
-	}
-
+type nowPlaying struct {
+	Data struct {
+		NowPlaying struct {
+			Track struct {
+				Artist string `json:"artist"`
+			} `json:"track"`
+		} `json:"nowPlaying"`
+	} `json:"data"`
 }
 
 func main() {
 
-	res, _ := http.Get("*****URY AUDIO STATUS URL*****")
+	var manual bool
+	flag.BoolVar(&manual, "m", false, "manual run")
+	flag.Parse()
 
-	var songData icecast
+	res, _ := http.Get(nowPlayingEndpoint)
+
+	var songData nowPlaying
 
 	decoder := json.NewDecoder(res.Body)
 	err := decoder.Decode(&songData)
@@ -46,17 +44,17 @@ func main() {
 		panic(err)
 	}
 
-	for _, val := range songData.Icestats.Source {
-		if val.Listenurl == "*****LISTEN LIVE URL*****" {
-			artist := strings.Split(val.Title, " - ")[0]
+	if manual || (len(songData.Data.NowPlaying.Track.Artist) >= 12 && songData.Data.NowPlaying.Track.Artist[:12] == "King Gizzard") {
 
-			if artist == "King Gizzard and The Lizard Wizard" || artist == "King Gizzard And The Lizard Wizard" || artist == "King Gizzard & The Lizard Wizard" || artist == "King Gizzard and the Lizard Wizard & Mild High Club" {
-				VoncAlex()
-				break
-			}
-
+		var toSend slackMessage = slackMessage{Text: message}
+		bytesRepresentation, err := json.Marshal(toSend)
+		if err != nil {
+			panic(err)
 		}
-
+		_, err = http.Post(slackHook, "application/json", bytes.NewBuffer(bytesRepresentation))
+		if err != nil {
+			panic(err)
+		}
 	}
 
 }
