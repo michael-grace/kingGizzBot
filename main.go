@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
+	"time"
 )
 
 type config struct {
@@ -23,10 +26,15 @@ type nowPlaying struct {
 	Data struct {
 		NowPlaying struct {
 			Track struct {
+				Title  string `json:"title"`
 				Artist string `json:"artist"`
 			} `json:"track"`
 		} `json:"nowPlaying"`
 	} `json:"data"`
+}
+
+type songs struct {
+	Songs map[string][]string `yaml:"songs"`
 }
 
 func main() {
@@ -51,9 +59,16 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	songCommentsFile, err := ioutil.ReadFile("songs.yml")
+
+	if err != nil {
+		panic(err)
+	}
+
+	var songComments songs
+	err = yaml.Unmarshal(songCommentsFile, &songComments)
 
 	res, _ := http.Get(botConfig.NowPlayingEndpoint)
-
 	var songData nowPlaying
 
 	decoder := json.NewDecoder(res.Body)
@@ -68,6 +83,11 @@ func main() {
 		var message string
 		if customMessage == "" {
 			message = botConfig.Message
+			comments, ok := songComments.Songs[songData.Data.NowPlaying.Track.Title]
+			if ok {
+				rand.Seed(time.Now().Unix())
+				message = fmt.Sprintf("%s\n%s", botConfig.Message, comments[rand.Intn(len(comments))])
+			}
 		} else {
 			message = customMessage
 		}
