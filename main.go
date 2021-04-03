@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
+
+	"gopkg.in/yaml.v2"
 )
 
 type config struct {
@@ -37,6 +39,17 @@ type songs struct {
 	Songs map[string][]string `yaml:"songs"`
 }
 
+func emojiReplace(message, replacement string) string {
+	letters := strings.Split(strings.ToLower(message), "")
+	runes := []rune(strings.ToLower(message))
+	for idx, r := range runes {
+		if r >= 'a' && r <= 'z' {
+			letters[idx] = fmt.Sprintf(":%s%s:", replacement, string(r))
+		}
+	}
+	return strings.Join(letters, "")
+}
+
 func main() {
 
 	var manual bool
@@ -44,6 +57,12 @@ func main() {
 
 	var customMessage string
 	flag.StringVar(&customMessage, "c", "", "custom message to send")
+
+	var emoji string
+	flag.StringVar(&emoji, "e", "", "emoji set to use")
+
+	var development bool
+	flag.BoolVar(&development, "d", false, "development mode")
 
 	flag.Parse()
 
@@ -68,6 +87,10 @@ func main() {
 	var songComments songs
 	err = yaml.Unmarshal(songCommentsFile, &songComments)
 
+	if err != nil {
+		panic(err)
+	}
+
 	res, _ := http.Get(botConfig.NowPlayingEndpoint)
 	var songData nowPlaying
 
@@ -86,20 +109,31 @@ func main() {
 			comments, ok := songComments.Songs[songData.Data.NowPlaying.Track.Title]
 			if ok {
 				rand.Seed(time.Now().Unix())
-				message = fmt.Sprintf("%s\n%s", botConfig.Message, comments[rand.Intn(len(comments))])
+				message = fmt.Sprintf("%s %s", botConfig.Message, comments[rand.Intn(len(comments))])
 			}
 		} else {
 			message = customMessage
 		}
 
-		var toSend slackMessage = slackMessage{Text: message}
-		bytesRepresentation, err := json.Marshal(toSend)
-		if err != nil {
-			panic(err)
+		switch emoji {
+		case "w":
+			message = emojiReplace(message, "alphabet-white-")
+		case "y":
+			message = emojiReplace(message, "alphabet-yellow-")
 		}
-		_, err = http.Post(botConfig.SlackHook, "application/json", bytes.NewBuffer(bytesRepresentation))
-		if err != nil {
-			panic(err)
+
+		if development {
+			fmt.Println(message)
+		} else {
+			var toSend slackMessage = slackMessage{Text: message}
+			bytesRepresentation, err := json.Marshal(toSend)
+			if err != nil {
+				panic(err)
+			}
+			_, err = http.Post(botConfig.SlackHook, "application/json", bytes.NewBuffer(bytesRepresentation))
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 
