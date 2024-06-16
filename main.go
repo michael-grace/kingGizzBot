@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"os"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
