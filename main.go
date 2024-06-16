@@ -78,6 +78,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	if botConfig.SlackHook == "" {
+		botConfig.SlackHook = os.Getenv("SLACK_HOOK")
+	}
+
 	songCommentsFile, err := ioutil.ReadFile("songs.yml")
 
 	if err != nil {
