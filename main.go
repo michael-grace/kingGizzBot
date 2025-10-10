@@ -107,6 +107,11 @@ func main() {
 		panic(err)
 	}
 
+	// Liz's Request, October 2025
+	if customMessage == "" && songData.Data.NowPlaying.Track.Title == "Escape (The Pina Colada Song)" {
+		customMessage == "To Pina Colada or not to Pina Colada? That is the question. Basically, do you like them?"
+	}
+
 	if manual || customMessage != "" || (len(songData.Data.NowPlaying.Track.Artist) >= 12 && songData.Data.NowPlaying.Track.Artist[:12] == "King Gizzard") {
 
 		var message string
