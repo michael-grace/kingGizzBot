@@ -108,11 +108,12 @@ func main() {
 	}
 
 	// Liz's Request, October 2025
+	var pinaColada bool
 	if customMessage == "" && songData.Data.NowPlaying.Track.Title == "Escape (The Pina Colada Song)" {
-		customMessage = "To Pina Colada or not to Pina Colada? That is the question. Basically, do you like them?"
+		pinaColada = true
 	}
 
-	if manual || customMessage != "" || (len(songData.Data.NowPlaying.Track.Artist) >= 12 && songData.Data.NowPlaying.Track.Artist[:12] == "King Gizzard") {
+	if manual || customMessage != "" || (len(songData.Data.NowPlaying.Track.Artist) >= 12 && songData.Data.NowPlaying.Track.Artist[:12] == "King Gizzard") || pinaColada {
 
 		var message string
 		if customMessage == "" {
@@ -120,7 +121,13 @@ func main() {
 			comments, ok := songComments.Songs[songData.Data.NowPlaying.Track.Title]
 			if ok {
 				rand.Seed(time.Now().Unix())
-				message = fmt.Sprintf("%s %s", botConfig.Message, comments[rand.Intn(len(comments))])
+				randComment := comments[rand.Intn(len(comments))]
+
+				if pinaColada {
+					message = randComment
+				} else {
+					message = fmt.Sprintf("%s %s", botConfig.Message, comments[rand.Intn(len(comments))])
+				}
 			}
 		} else {
 			message = customMessage
